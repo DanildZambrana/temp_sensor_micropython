@@ -1,15 +1,21 @@
 import network, time, ntptime, dht, urequests, gc
-from machine import Pin
+from lcd1602 import LCD
+from machine import Pin, I2C
 
 
 # Wi-Fi configuration
-SSID = "NOMBRE_DE_RED"
-PASSWORD = "CONTRASEÑA"
+SSID = "YESSITALOPEZ 2.4G"  # modify this
+PASSWORD = "FAMILY-ZAMLO-2022"  # modify this
 
 # DHT11 and LED configuration
 sensor = dht.DHT11(Pin(17))
 led = Pin("LED", Pin.OUT)
+
 led.off()
+
+i2c = I2C(0, sda=Pin(4), scl=Pin(5), freq=400000)
+lcd = LCD(i2c)
+lcd.clear()
 
 # Timestamp for periodic tasks
 last_update = time.ticks_ms()
@@ -22,8 +28,13 @@ def connect_wifi():
     wlan.connect(SSID, PASSWORD)
     while not wlan.isconnected():
         print("Connecting to WiFi...")
+        lcd.write(0, 0, "Connectando a Wi-Fi...")
+        lcd.write(0,1, SSID)
         time.sleep(1)
     print("WiFi Connected:", wlan.ifconfig())
+    lcd.write(0, 0, "Conectado a Wi-Fi...")
+    lcd.write(0, 1, wlan.ifconfig()[0])
+    ntptime.settime()
 
 def publish_data(humidity, temperature):
     url = "http://192.168.1.157:3000/api/sensor"
@@ -67,6 +78,10 @@ def main():
                 humidity = str(sensor.humidity())  # Humidity
 
                 print(f"Temperature: {temperature}C   Humidity: {humidity}% time: {time.time()}")
+
+                lcd.clear()
+                lcd.write(0, 0, f"Temperatura: {temperature}C")
+                lcd.write(0, 1, f"Humedad: {humidity}%")
                 led.on()
                 publish_data(humidity, temperature)
                 led.off()
